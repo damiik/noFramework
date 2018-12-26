@@ -42,20 +42,7 @@ class Store {
 
         localStorage.setItem('books', JSON.stringify(books));
     };
-
 }
-
-
-// Book class: Represents a Book
-// class Book {
-
-//     constructor(title, author, isbn) {
-
-//         this.title = title;
-//         this.author = author;
-//         this.isbn = isbn;
-//     }
-// }
 
 
 class BookItem {
@@ -86,48 +73,45 @@ class BookItem {
     }
 }
 
-class App {
 
-    constructor() {
+class BookTable {
 
-        let sb = Store.getBooks();
-        this.books = sb.map((b) => new BookItem('#book-list', b) ); 
+    constructor(parent, books) {
+
+        this.parent = parent;
+        this.books = books; 
+        this.html = undefined;
+    }
+    show() { 
+
+        this.html = El(this.parent).appendChild(this.makeHtml());
+        this.books.forEach((bookItem) => {
+
+            console.log(bookItem)   
+            if(bookItem !== undefined) bookItem.show();
+        });         
+    }
+    hide() { if(this.html) this.html.remove(); }
+
+    makeHtml() {
+
+        const table = document.createElement('table');
+        table.className = `table table-striped mt-5`;
+        table.innerHTML =  `
+        <thead>
+        <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>ISBN</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody id="book-list">
         
-        document.addEventListener('DOMContentLoaded', () => {
-
-            this.show();
-        });
-
-        // Event: Add a Book
-        addEvent('#book-form', 'submit', (e) => {
-
-            e.preventDefault();
-
-            let err = this.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
-            if( err ) this.showAlert(err, 'warning');
-            else {
-
-                this.showAlert('Book Added', 'success');   
-                setVal('#title', '');
-                setVal('#author', '');
-                setVal('#isbn', '');
-            }
-        });
-
-        // Event: Remove a Book
-        addEvent('#book-list','click', (e) => { // dodaje event do book-list bo przyciski jeszcze nie istnieją!
-
-            console.log(e.target.parentElement.parentElement.id )
-            let deleted = this.removeBook( e.target.parentElement.parentElement.id );
-            if( deleted ) {
-
-                setVal('#title', deleted.title)
-                setVal('#author', deleted.author)
-                setVal('#isbn', deleted.isbn)
-            }
-            
-            this.showAlert('Book Removed', 'success');
-        });
+        </tbody>
+        `;
+ 
+        return table;
     }
 
     getBookIndex(isbn) {
@@ -141,22 +125,23 @@ class App {
     }
 
     addBook(title, author, isbn) {   
-
-        if(title === '' || author === '' || isbn === '') return 'Please fill in all fields';
-        if(this.getBookIndex(isbn) > -1) return 'ISBN no must be unique!';  
+        let err = '';
+        if(title === '' || author === '' || isbn === '') err = 'Please fill in all fields';
+        if(this.getBookIndex(isbn) > -1) err = 'ISBN no must be unique!';  
       
-        let bookItem = new BookItem('#book-list', {title, author, isbn});
-        Store.addBook( bookItem.book );
-        this.books = [...this.books, bookItem]
-        bookItem.show();
-        return '';
+        if(!err) {
+
+            let bookItem = new BookItem('#book-list', {title, author, isbn});
+            this.books = [...this.books, bookItem]
+            bookItem.show();
+            return {err, book:bookItem.book};
+        }
+        return {err, book:undefined};
     }
 
 
     removeBook(isbn) {
 
-        Store.removeBook(isbn);
-        
         let bookItemIndex = this.getBookIndex( isbn );
         if(bookItemIndex > -1) {
             let toDelete = this.books[ bookItemIndex ];
@@ -167,15 +152,66 @@ class App {
         }
         return {};
     }
+}
+
+
+
+class App {
+
+    constructor() {
+
+        let sb = Store.getBooks();
+        this.bookTable = new BookTable('#main-container', sb.map((b) => new BookItem('#book-list', b) ));
+        //this.books = sb.map((b) => new BookItem('#book-list', b) ); 
+
+        
+        document.addEventListener('DOMContentLoaded', () => {
+
+            this.show();
+
+            addEvent('#book-list','click', (e) => { // dodaje event do book-list bo przyciski jeszcze nie istnieją!
+                
+                const isbn = e.target.parentElement.parentElement.id;
+                console.log( isbn)
+                Store.removeBook( isbn );
+                let deleted = this.bookTable.removeBook( isbn );
+                if( deleted ) {
+
+                    setVal('#title', deleted.title)
+                    setVal('#author', deleted.author)
+                    setVal('#isbn', deleted.isbn)
+                }
+                
+                this.showAlert('Book Removed', 'success');
+            });       
+
+
+        });
+
+        // Event: Add a Book
+        addEvent('#book-form', 'submit', (e) => {
+
+            e.preventDefault();
+
+            let {err, book}  = this.bookTable.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
+            if( err ) this.showAlert(err, 'warning');
+            else {
+                Store.addBook( book );
+                this.showAlert('Book Added', 'success');   
+                setVal('#title', '');
+                setVal('#author', '');
+                setVal('#isbn', '');
+            }
+        });
+    }
 
     
     show() {
 
-        this.books.forEach((bookItem) => {
+        this.bookTable.show();    
+        
+         // Event: Remove a Book
 
-            console.log(bookItem)   
-            if(bookItem !== undefined) bookItem.show();
-        });        
     }
 
     showAlert(message, className) {
@@ -186,12 +222,8 @@ class App {
 
         El('.container').insertBefore(div, El('#book-form'));
 
-        setTimeout(() => {
-
-            El('.alert').remove();
-            }, 3000);
+        setTimeout(() => { El('.alert').remove(); }, 3000);
     }
-
 };
 
 let app = new App();
