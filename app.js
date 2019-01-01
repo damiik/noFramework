@@ -87,26 +87,14 @@ class Showable {
 
 class BookItem extends Showable {
 
-    constructor(book, onButtonClick) {
+    constructor(book, onEditClick, onDeleteClick) {
 
         super(document.createElement('tr'));  
         this.el.setAttribute("id", book.isbn);
         this.book = book;
-        this.onButtonClick = onButtonClick;
+        this.onEditClick = onEditClick;
+        this.onDeleteClick = onDeleteClick;
      }
-
-    // onButtonClick() {
-
-    //     return function(id) {
-
-    //         console.log(`edit button click with isbn ${id}`)
-    //     };
-    // }
-
-    // buttonClicked = e => {
-    //     this.count += 1;
-    //     console.log(`clicked ${this.count} times`);
-    // }
 
     render() {
 
@@ -115,10 +103,10 @@ class BookItem extends Showable {
         <td>${this.book.author}</td>
         <td>${this.book.isbn}</td>
         <td>
-        <a href="#" onClick="(${this.onButtonClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn btn-success btn-sm edit">Edit</a> 
+        <a href="#" onClick="(${this.onEditClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn btn-success btn-sm edit">Edit</a> 
         </td>
         <td>
-        <a href="#" class="btn btn-danger btn-sm delete">X</a> 
+        <a href="#" onClick="(${this.onDeleteClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn btn-danger btn-sm delete">X</a> 
         </td>
         `;
         return super.render();
@@ -159,90 +147,57 @@ editButtonClick = (app) => {
 
     return (title, author, isbn) => {
 
-        console.log(`${app.info}, edit button click with isbn ${title}`)
+        console.log(`edit button click with isbn ${title}`)
 
         setVal('#title', title)
         setVal('#author', author)
         setVal('#isbn', isbn)
         app.editMode = true;
         setVal('#add-update-book', 'Update');
-
     };
 }
 
-// let isAvesome = (target) => {
-  
-//    target.isAvesome = true;
-// }
 
-// @isAvesome
+deleteButtonClick = (app) => {
+
+    return (title, author, isbn) => {
+
+        console.log(`delete button click with isbn ${title}`)
+
+        Store.removeBook( isbn );
+        let deleted = app.removeBook( isbn );
+        if( deleted ) {
+
+            setVal('#title', deleted.title)
+            setVal('#author', deleted.author)
+            setVal('#isbn', deleted.isbn)
+        }
+        
+        app.showAlert('Book Removed', 'success');
+    };
+}
+
+
 class App {
-
-    // static editButtonClick(isbn) {
-
-    //     console.log(`edit button click with isbn ${isbn}`)
-    // }
 
     constructor() {
 
-         this.info = "Hello from App";
+        this.info = "Hello from App";
 
-        //this.editButtonClick = ( editButtonClick )(this);
-
-        // this.editButtonClick = function (title, author, isbn) {
-    
-        //         console.log(`${this.info}, edit button click with isbn ${id}`)
-    
-        //         setVal('#title', title)
-        //         setVal('#author', author)
-        //         setVal('#isbn', isbn)
-        //         this.editMode = true;
-        //         setVal('#add-update-book', 'Update');
-    
-
-        // }
         let sb = Store.getBooks();
         this.bookTable = new BookTable();
         this.editMode = false;
-        this.books = sb.map((b) => new BookItem(b, ( editButtonClick )(this)));
-     
+        this.books = sb.map((b) => new BookItem(b, 
 
+            ( editButtonClick )(this),
+            ( deleteButtonClick )(this)
+        ));
 
         document.addEventListener('DOMContentLoaded', () => {
 
             addEvent('#book-list','click', (e) => { // dodaje event do book-list bo przyciski jeszcze nie istnieją!
 
-                const isbn = e.target.parentElement.parentElement.id;               
-                if(e.target.classList.contains('delete')) {
 
-                    console.log("remove:"+  isbn )
-                    Store.removeBook( isbn );
-                    let deleted = this.removeBook( isbn );
-                    if( deleted ) {
-
-                        setVal('#title', deleted.title)
-                        setVal('#author', deleted.author)
-                        setVal('#isbn', deleted.isbn)
-                    }
-                    
-                    this.showAlert('Book Removed', 'success');
-                }
-                // else if(e.target.classList.contains('edit')) {
-
-                //     let {err, bookItem} = this.getBook( isbn );
-                //     if( bookItem ) {
-                //         console.log("edit:"+  isbn )
-                //         setVal('#title', bookItem.book.title)
-                //         setVal('#author', bookItem.book.author)
-                //         setVal('#isbn', bookItem.book.isbn)
-                //         this.editMode = true;
-                //         setVal('#add-update-book', "Update");
-                //     }
-                //     else {
-
-                //         this.showAlert(err,  'warning');
-                //     }
-                // }
             });       
         });
 
@@ -282,21 +237,6 @@ class App {
         });
     }
 
-    // editButtonClick() {
-
-    //     return (title, author, isbn) => {
-
-    //         console.log(`${this.info}, edit button click with isbn ${title}`)
-
-    //         setVal('#title', title)
-    //         setVal('#author', author)
-    //         setVal('#isbn', isbn)
-    //         this.editMode = true;
-    //         setVal('#add-update-book', 'Update');
-
-    //     };
-    // }
-    
     
     render() {
         
@@ -339,7 +279,11 @@ class App {
       
         if(!err) {
 
-            bookItem = new BookItem({title, author, isbn}, App.editButtonClick);
+            bookItem = new BookItem(
+                {title, author, isbn}, 
+                ( editButtonClick )(this),
+                ( deleteButtonClick )(this)
+            );
             this.books = [...this.books, bookItem];
             IdEl('book-list').appendChild(bookItem.render());
         }
