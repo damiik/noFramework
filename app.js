@@ -83,7 +83,6 @@ class Showable {
 }
 
 
-
 class BookItem extends Showable {
 
     constructor(book, onEditClick, onDeleteClick) {
@@ -143,17 +142,23 @@ class BookTable extends Showable  {
 
 class BookForm extends Showable {
 
-    constructor(onSubmit) {
+    constructor(onSubmit, onError) {
 
         super(document.createElement('form'));
         this.el.setAttribute('id', 'book-form');
-
-        //this.el.attachEvent('onsubmit', onSubmit);
-        this.el.addEventListener('submit', onSubmit);        
+        this.el.addEventListener('submit', (e) => onSubmit(e));
     }
 
-    render() {
+    getValues() { return {title: this.title.value, author: this.author.value, isbn: this.isbn.value} }
 
+    setValues(title = '', author = '', isbn = '') {
+
+        this.title.value = title;
+        this.author.value = author;
+        this.isbn.value = isbn;
+    }
+    
+    render() {
 
         this.el.innerHTML =  `
 
@@ -171,8 +176,49 @@ class BookForm extends Showable {
             </div>  
             <input type="submit" value="Add Book" class="btn btn-primary btn-block" id="add-update-book">  
         `;
+        let el = super.render();
+        this.title = el.children[0].children[1];
+        this.author = el.children[1].children[1];
+        this.isbn = el.children[2].children[1];
+        return el;
+    }
+}
 
-        return super.render();
+let bookFormSubmit = (app) => {
+
+    return (e) => {
+
+        e.preventDefault();
+        if(this.title.value === '' || this.author.value === '' || this.isbn.value === '') {
+            app.showMessage('BookForm: Please fill in all fields', 'warning');
+            return;
+        }
+ 
+        if(app.editMode) {   // update book
+
+            app.editMode = false;
+            setVal('#add-update-book', "Add Book");
+        
+            let {err, bookItem} = app.updateBook(app.bookForm.getValues());
+            if( err ) app.showMessage(err, 'warning');
+            else {
+
+                Store.updateBook(bookItem.book);
+                app.showMessage('Book Updated', 'success');  
+                app.bookForm.setValues();
+            }  
+        }
+        else {  // add book
+
+            let {err, bookItem}  = app.addBook(app.bookForm.getValues());
+            if( err ) app.showMessage(err, 'warning');
+            else {
+            //IdEl('book-list').appendChild(bookItem.render())
+                Store.addBook( bookItem.book );
+                app.showMessage('Book Added', 'success');  
+                app.bookForm.setValues();
+            }                
+        }
     }
 }
 
@@ -182,10 +228,7 @@ let editButtonClick = (app) => {
     return (title, author, isbn) => {
 
         console.log(`edit button click with isbn ${title}`)
-
-        setVal('#title', title)
-        setVal('#author', author)
-        setVal('#isbn', isbn)
+        app.bookForm.setValues(title, author, isbn);
         app.editMode = true;
         setVal('#add-update-book', 'Update');
     };
@@ -200,55 +243,29 @@ let deleteButtonClick = (app) => {
 
         Store.removeBook( isbn );
         let deleted = app.removeBook( isbn );
-        if( deleted ) {
-
-            setVal('#title', deleted.title)
-            setVal('#author', deleted.author)
-            setVal('#isbn', deleted.isbn)
-        }
-        
-        app.showAlert('Book Removed', 'success');
+        if( deleted ) app.bookForm.setValues(deleted.title, deleted.author, deleted.isbn);
+       
+        app.showMessage('Book Removed', 'success');
     };
 }
 
 
-let bookFormSubmit = (app) => {
 
-    return (e) => {
 
-        e.preventDefault();
-        if(app.editMode) {   // update book
+let onError = (app) => {
 
-            app.editMode = false;
-            setVal('#add-update-book', "Add Book");
-        
-            let {err, bookItem} = app.updateBook(getVal('#title'), getVal('#author'), getVal('#isbn') );
-            if( err ) app.showAlert(err, 'warning');
-            else {
+    app.showMessage()
 
-                Store.updateBook(bookItem.book);
-                app.showAlert('Book Updated', 'success');   
-                setVal('#title', '');
-                setVal('#author', '');
-                setVal('#isbn', '');
-            }  
-        }
-        else {  // add book
+    return (message, className) => {
 
-            let {err, bookItem}  = app.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
-            if( err ) app.showAlert(err, 'warning');
-            else {
-            //IdEl('book-list').appendChild(bookItem.render())
-                Store.addBook( bookItem.book );
-                app.showAlert('Book Added', 'success');   
-                setVal('#title', '');
-                setVal('#author', '');
-                setVal('#isbn', '');
-            }                
-        }
+        const div = document.createElement('div');
+        div.className = `alert alert-${className}`;
+        div.innerHTML = message
+
+        El('.container').insertBefore(div, IdEl('book-form'));
+        setTimeout(() => { El('.alert').remove(); }, 3000);
     }
 }
-
 
 class App {
 
@@ -258,7 +275,7 @@ class App {
 
         let sb = Store.getBooks();
        
-        this.bookForm = new BookForm( (bookFormSubmit)(this) );
+        this.bookForm = new BookForm( (bookFormSubmit)(this), (onError)(this) );
         this.bookTable = new BookTable();        
         this.editMode = false;
         this.books = sb.map((b) => new BookItem(b, 
@@ -269,58 +286,12 @@ class App {
 
         document.addEventListener('DOMContentLoaded', () => {
 
-            this.render();
-            // addEvent('#book-list','click', (e) => { // dodaje event do book-list bo przyciski jeszcze nie istnieją!
-
-
-            // });  
-            
-            //this.bookForm.el.addEventListener('submit', bookFormSubmit);
-            // // Event: Add a Book
-            // addEvent('#book-form', 'submit', (e) => {
-
-            //     e.preventDefault();
-            //     if(this.editMode) {   // update book
-
-            //         this.editMode = false;
-            //         setVal('#add-update-book', "Add Book");
-                
-            //         let {err, bookItem} = this.updateBook(getVal('#title'), getVal('#author'), getVal('#isbn') );
-            //         if( err ) this.showAlert(err, 'warning');
-            //         else {
-
-            //             Store.updateBook(bookItem.book);
-            //             this.showAlert('Book Updated', 'success');   
-            //             setVal('#title', '');
-            //             setVal('#author', '');
-            //             setVal('#isbn', '');
-            //         }  
-            //     }
-            //     else {  // add book
-
-            //         let {err, bookItem}  = this.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
-            //         if( err ) this.showAlert(err, 'warning');
-            //         else {
-            //         //IdEl('book-list').appendChild(bookItem.render())
-            //             Store.addBook( bookItem.book );
-            //             this.showAlert('Book Added', 'success');   
-            //             setVal('#title', '');
-            //             setVal('#author', '');
-            //             setVal('#isbn', '');
-            //         }                
-            //     }
-            // });
+            IdEl('main-container').appendChild( this.bookForm.render() );        
+            IdEl('main-container').appendChild( this.bookTable.render(this.books) );            
         });
     }
 
-    
-    render() {
-
-       IdEl('main-container').appendChild( this.bookForm.render() );        
-       IdEl('main-container').appendChild( this.bookTable.render(this.books) );
-    }
-
-    showAlert(message, className) {
+    showMessage(message, className) {
 
         const div = document.createElement('div');
         div.className = `alert alert-${className}`;
@@ -348,16 +319,15 @@ class App {
         return {err:`Can't find book with isbn ${isbn}`, bookItem: undefined};
     }
 
-    addBook(title, author, isbn) {   
+    addBook(book) {   
         
         let {err, bookItem} = {undefined, undefined};
-        if(title === '' || author === '' || isbn === '') err = 'Please fill in all fields';
-        if(this.getBookIndex(isbn) > -1) err = 'ISBN number must be unique!';  
+        if(this.getBookIndex(book.isbn) > -1) err = 'ISBN number must be unique!';  
       
         if(!err) {
 
-            bookItem = new BookItem(
-                {title, author, isbn}, 
+            bookItem = new BookItem(book, 
+
                 ( editButtonClick )(this),
                 ( deleteButtonClick )(this)
             );
@@ -367,20 +337,14 @@ class App {
         return {err, bookItem};
     }
   
-    updateBook(title, author, isbn) {
+    updateBook(book) {
 
-        let {err, bookItem} = {undefined, undefined};
-        if(title === '' || author === '' || isbn === '') err = 'Please fill in all fields';
-        if(!err) {
-          
-           let {err, bookItem} = this.getBook( isbn );
+        let {err, bookItem} = this.getBook( book.isbn );
 
-           if(bookItem !== undefined) {
-              bookItem.book.title = title;
-              bookItem.book.author = author;
-              bookItem.render(); // !!!!! super !!!!!! updated only changed element
-            }
-          return {err, bookItem};
+        if(bookItem !== undefined) {
+            bookItem.book.title = book.title;
+            bookItem.book.author = book.author;
+            bookItem.render(); // !!!!! super !!!!!! updated only changed element
         }
         return {err, bookItem};
     }
