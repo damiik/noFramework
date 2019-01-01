@@ -63,21 +63,17 @@ class Store {
 
 class Showable {
 
-    constructor(el = undefined) {
-     
-        this.el = el;
-    }
+    constructor(el = undefined) { this.el = el; }
     render() { return this.el; }
-  
     remove() { if( this.el ) this.el.remove(); }
-  
-  
+
     appendWithId(el, id) {
       
       let child = this.el.appendChild(document.createElement(el));
       child.setAttribute("id", id);
       return child;
     }
+
     appendWithClass(el, className) {
       
       let child = this.el.appendChild(document.createElement(el));
@@ -86,14 +82,31 @@ class Showable {
     }
 }
 
+
+
+
 class BookItem extends Showable {
 
-    constructor(book) {
+    constructor(book, onButtonClick) {
 
         super(document.createElement('tr'));  
         this.el.setAttribute("id", book.isbn);
         this.book = book;
-    }
+        this.onButtonClick = onButtonClick;
+     }
+
+    // onButtonClick() {
+
+    //     return function(id) {
+
+    //         console.log(`edit button click with isbn ${id}`)
+    //     };
+    // }
+
+    // buttonClicked = e => {
+    //     this.count += 1;
+    //     console.log(`clicked ${this.count} times`);
+    // }
 
     render() {
 
@@ -102,7 +115,7 @@ class BookItem extends Showable {
         <td>${this.book.author}</td>
         <td>${this.book.isbn}</td>
         <td>
-        <a href="#" class="btn btn-sm edit">Edit</a> 
+        <a href="#" onClick="(${this.onButtonClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn btn-success btn-sm edit">Edit</a> 
         </td>
         <td>
         <a href="#" class="btn btn-danger btn-sm delete">X</a> 
@@ -112,18 +125,18 @@ class BookItem extends Showable {
     }
 }
 
+BookItem.onButtonClick = undefined;
 
 class BookTable extends Showable  {
 
-    constructor(books) {
+    constructor() {
 
         super(document.createElement('table'));
         this.el.className = `table table-striped mt-5`;
-        this.books = books;
-        this.columns =  ["Title+", "Author", "ISBN", ""];
+        this.columns =  ["Title", "Author", "ISBN", ""];
     }
 
-    render() {
+    render(books) {
 
        this.el.innerHTML =  `
         <thead>
@@ -135,9 +148,170 @@ class BookTable extends Showable  {
 
       let bookList = this.appendWithId('tbody', 'book-list');
       //console.log(IdEl('book-list')) is null!
-      this.books.map(book => bookList.appendChild(book.render()));
+      books.map(book => bookList.appendChild(book.render()));
       
       return super.render();
+    }
+}
+
+
+editButtonClick = (app) => {
+
+    return (title, author, isbn) => {
+
+        console.log(`${app.info}, edit button click with isbn ${title}`)
+
+        setVal('#title', title)
+        setVal('#author', author)
+        setVal('#isbn', isbn)
+        app.editMode = true;
+        setVal('#add-update-book', 'Update');
+
+    };
+}
+
+// let isAvesome = (target) => {
+  
+//    target.isAvesome = true;
+// }
+
+// @isAvesome
+class App {
+
+    // static editButtonClick(isbn) {
+
+    //     console.log(`edit button click with isbn ${isbn}`)
+    // }
+
+    constructor() {
+
+         this.info = "Hello from App";
+
+        //this.editButtonClick = ( editButtonClick )(this);
+
+        // this.editButtonClick = function (title, author, isbn) {
+    
+        //         console.log(`${this.info}, edit button click with isbn ${id}`)
+    
+        //         setVal('#title', title)
+        //         setVal('#author', author)
+        //         setVal('#isbn', isbn)
+        //         this.editMode = true;
+        //         setVal('#add-update-book', 'Update');
+    
+
+        // }
+        let sb = Store.getBooks();
+        this.bookTable = new BookTable();
+        this.editMode = false;
+        this.books = sb.map((b) => new BookItem(b, ( editButtonClick )(this)));
+     
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            addEvent('#book-list','click', (e) => { // dodaje event do book-list bo przyciski jeszcze nie istnieją!
+
+                const isbn = e.target.parentElement.parentElement.id;               
+                if(e.target.classList.contains('delete')) {
+
+                    console.log("remove:"+  isbn )
+                    Store.removeBook( isbn );
+                    let deleted = this.removeBook( isbn );
+                    if( deleted ) {
+
+                        setVal('#title', deleted.title)
+                        setVal('#author', deleted.author)
+                        setVal('#isbn', deleted.isbn)
+                    }
+                    
+                    this.showAlert('Book Removed', 'success');
+                }
+                // else if(e.target.classList.contains('edit')) {
+
+                //     let {err, bookItem} = this.getBook( isbn );
+                //     if( bookItem ) {
+                //         console.log("edit:"+  isbn )
+                //         setVal('#title', bookItem.book.title)
+                //         setVal('#author', bookItem.book.author)
+                //         setVal('#isbn', bookItem.book.isbn)
+                //         this.editMode = true;
+                //         setVal('#add-update-book', "Update");
+                //     }
+                //     else {
+
+                //         this.showAlert(err,  'warning');
+                //     }
+                // }
+            });       
+        });
+
+        // Event: Add a Book
+        addEvent('#book-form', 'submit', (e) => {
+
+            e.preventDefault();
+            if(this.editMode) {   // update book
+
+                this.editMode = false;
+                setVal('#add-update-book', "Add Book");
+              
+                let {err, bookItem} = this.updateBook(getVal('#title'), getVal('#author'), getVal('#isbn') );
+                if( err ) this.showAlert(err, 'warning');
+                else {
+
+                    Store.updateBook(bookItem.book);
+                    this.showAlert('Book Updated', 'success');   
+                    setVal('#title', '');
+                    setVal('#author', '');
+                    setVal('#isbn', '');
+                }  
+            }
+            else {  // add book
+
+                let {err, bookItem}  = this.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
+                if( err ) this.showAlert(err, 'warning');
+                else {
+                  //IdEl('book-list').appendChild(bookItem.render())
+                    Store.addBook( bookItem.book );
+                    this.showAlert('Book Added', 'success');   
+                    setVal('#title', '');
+                    setVal('#author', '');
+                    setVal('#isbn', '');
+                }                
+            }
+        });
+    }
+
+    // editButtonClick() {
+
+    //     return (title, author, isbn) => {
+
+    //         console.log(`${this.info}, edit button click with isbn ${title}`)
+
+    //         setVal('#title', title)
+    //         setVal('#author', author)
+    //         setVal('#isbn', isbn)
+    //         this.editMode = true;
+    //         setVal('#add-update-book', 'Update');
+
+    //     };
+    // }
+    
+    
+    render() {
+        
+       IdEl('main-container').appendChild( this.bookTable.render(this.books) );
+    }
+
+    showAlert(message, className) {
+
+        const div = document.createElement('div');
+        div.className = `alert alert-${className}`;
+        div.innerHTML = message
+
+        El('.container').insertBefore(div, IdEl('book-form'));
+
+        setTimeout(() => { El('.alert').remove(); }, 3000);
     }
 
     getBookIndex(isbn) {
@@ -165,7 +339,7 @@ class BookTable extends Showable  {
       
         if(!err) {
 
-            bookItem = new BookItem( {title, author, isbn});
+            bookItem = new BookItem({title, author, isbn}, App.editButtonClick);
             this.books = [...this.books, bookItem];
             IdEl('book-list').appendChild(bookItem.render());
         }
@@ -201,119 +375,11 @@ class BookTable extends Showable  {
             console.log( toDelete )
             return toDelete.book;
         }
-        
+
         return {};
-    }
-}
-
-// let isAvesome = (target) => {
-  
-//    target.isAvesome = true;
-// }
-
-// @isAvesome
-class App {
-
-    constructor() {
-
-        let sb = Store.getBooks();
-        this.bookTable = new BookTable( sb.map((b) => new BookItem( b )) );
-        this.editMode = false;
-        
-        document.addEventListener('DOMContentLoaded', () => {
-
-            addEvent('#book-list','click', (e) => { // dodaje event do book-list bo przyciski jeszcze nie istnieją!
-
-                const isbn = e.target.parentElement.parentElement.id;               
-                if(e.target.classList.contains('delete')) {
-
-                    console.log("remove:"+  isbn )
-                    Store.removeBook( isbn );
-                    let deleted = this.bookTable.removeBook( isbn );
-                    if( deleted ) {
-
-                        setVal('#title', deleted.title)
-                        setVal('#author', deleted.author)
-                        setVal('#isbn', deleted.isbn)
-                    }
-                    
-                    this.showAlert('Book Removed', 'success');
-                }
-                else if(e.target.classList.contains('edit')) {
-
-                    let {err, bookItem} = this.bookTable.getBook( isbn );
-                    if( bookItem ) {
-                        console.log("edit:"+  isbn )
-                        setVal('#title', bookItem.book.title)
-                        setVal('#author', bookItem.book.author)
-                        setVal('#isbn', bookItem.book.isbn)
-                        this.editMode = true;
-                        setVal('#add-update-book', "Update");
-                    }
-                    else {
-
-                        this.showAlert(err,  'warning');
-                    }
-                }
-            });       
-        });
-
-        // Event: Add a Book
-        addEvent('#book-form', 'submit', (e) => {
-
-            e.preventDefault();
-            if(this.editMode) {   // update book
-
-                this.editMode = false;
-                setVal('#add-update-book', "Add Book");
-              
-                let {err, bookItem} = this.bookTable.updateBook(getVal('#title'), getVal('#author'), getVal('#isbn') );
-                if( err ) this.showAlert(err, 'warning');
-                else {
-
-                    Store.updateBook(bookItem.book);
-                    this.showAlert('Book Updated', 'success');   
-                    setVal('#title', '');
-                    setVal('#author', '');
-                    setVal('#isbn', '');
-                }  
-            }
-            else {  // add book
-
-                let {err, bookItem}  = this.bookTable.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
-                if( err ) this.showAlert(err, 'warning');
-                else {
-                  //IdEl('book-list').appendChild(bookItem.render())
-                    Store.addBook( bookItem.book );
-                    this.showAlert('Book Added', 'success');   
-                    setVal('#title', '');
-                    setVal('#author', '');
-                    setVal('#isbn', '');
-                }                
-            }
-        });
-    }
-
-    
-    render() {
-        
-       IdEl('main-container').appendChild( this.bookTable.render() );
-    }
-
-    showAlert(message, className) {
-
-        const div = document.createElement('div');
-        div.className = `alert alert-${className}`;
-        div.innerHTML = message
-
-        El('.container').insertBefore(div, IdEl('book-form'));
-
-        setTimeout(() => { El('.alert').remove(); }, 3000);
     }
 };
 
 let app = new App();
 app.render();
-
-
 
