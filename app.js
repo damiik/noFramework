@@ -84,7 +84,6 @@ class Showable {
 
 
 
-
 class BookItem extends Showable {
 
     constructor(book, onEditClick, onDeleteClick) {
@@ -113,7 +112,6 @@ class BookItem extends Showable {
     }
 }
 
-BookItem.onButtonClick = undefined;
 
 class BookTable extends Showable  {
 
@@ -143,7 +141,43 @@ class BookTable extends Showable  {
 }
 
 
-editButtonClick = (app) => {
+class BookForm extends Showable {
+
+    constructor(onSubmit) {
+
+        super(document.createElement('form'));
+        this.el.setAttribute('id', 'book-form');
+
+        //this.el.attachEvent('onsubmit', onSubmit);
+        this.el.addEventListener('submit', onSubmit);        
+    }
+
+    render() {
+
+
+        this.el.innerHTML =  `
+
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" class="form-control">
+            </div>
+            <div class="form-group">
+                    <label for="author">Author</label>
+                    <input type="text" id="author" class="form-control">
+            </div>
+            <div class="form-group">
+                    <label for="isbn">ISBN</label>
+                    <input type="text" id="isbn" class="form-control">
+            </div>  
+            <input type="submit" value="Add Book" class="btn btn-primary btn-block" id="add-update-book">  
+        `;
+
+        return super.render();
+    }
+}
+
+
+let editButtonClick = (app) => {
 
     return (title, author, isbn) => {
 
@@ -158,7 +192,7 @@ editButtonClick = (app) => {
 }
 
 
-deleteButtonClick = (app) => {
+let deleteButtonClick = (app) => {
 
     return (title, author, isbn) => {
 
@@ -178,6 +212,44 @@ deleteButtonClick = (app) => {
 }
 
 
+let bookFormSubmit = (app) => {
+
+    return (e) => {
+
+        e.preventDefault();
+        if(app.editMode) {   // update book
+
+            app.editMode = false;
+            setVal('#add-update-book', "Add Book");
+        
+            let {err, bookItem} = app.updateBook(getVal('#title'), getVal('#author'), getVal('#isbn') );
+            if( err ) app.showAlert(err, 'warning');
+            else {
+
+                Store.updateBook(bookItem.book);
+                app.showAlert('Book Updated', 'success');   
+                setVal('#title', '');
+                setVal('#author', '');
+                setVal('#isbn', '');
+            }  
+        }
+        else {  // add book
+
+            let {err, bookItem}  = app.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
+            if( err ) app.showAlert(err, 'warning');
+            else {
+            //IdEl('book-list').appendChild(bookItem.render())
+                Store.addBook( bookItem.book );
+                app.showAlert('Book Added', 'success');   
+                setVal('#title', '');
+                setVal('#author', '');
+                setVal('#isbn', '');
+            }                
+        }
+    }
+}
+
+
 class App {
 
     constructor() {
@@ -185,7 +257,9 @@ class App {
         this.info = "Hello from App";
 
         let sb = Store.getBooks();
-        this.bookTable = new BookTable();
+       
+        this.bookForm = new BookForm( (bookFormSubmit)(this) );
+        this.bookTable = new BookTable();        
         this.editMode = false;
         this.books = sb.map((b) => new BookItem(b, 
 
@@ -195,51 +269,54 @@ class App {
 
         document.addEventListener('DOMContentLoaded', () => {
 
-            addEvent('#book-list','click', (e) => { // dodaje event do book-list bo przyciski jeszcze nie istnieją!
+            this.render();
+            // addEvent('#book-list','click', (e) => { // dodaje event do book-list bo przyciski jeszcze nie istnieją!
 
 
-            });       
-        });
+            // });  
+            
+            //this.bookForm.el.addEventListener('submit', bookFormSubmit);
+            // // Event: Add a Book
+            // addEvent('#book-form', 'submit', (e) => {
 
-        // Event: Add a Book
-        addEvent('#book-form', 'submit', (e) => {
+            //     e.preventDefault();
+            //     if(this.editMode) {   // update book
 
-            e.preventDefault();
-            if(this.editMode) {   // update book
+            //         this.editMode = false;
+            //         setVal('#add-update-book', "Add Book");
+                
+            //         let {err, bookItem} = this.updateBook(getVal('#title'), getVal('#author'), getVal('#isbn') );
+            //         if( err ) this.showAlert(err, 'warning');
+            //         else {
 
-                this.editMode = false;
-                setVal('#add-update-book', "Add Book");
-              
-                let {err, bookItem} = this.updateBook(getVal('#title'), getVal('#author'), getVal('#isbn') );
-                if( err ) this.showAlert(err, 'warning');
-                else {
+            //             Store.updateBook(bookItem.book);
+            //             this.showAlert('Book Updated', 'success');   
+            //             setVal('#title', '');
+            //             setVal('#author', '');
+            //             setVal('#isbn', '');
+            //         }  
+            //     }
+            //     else {  // add book
 
-                    Store.updateBook(bookItem.book);
-                    this.showAlert('Book Updated', 'success');   
-                    setVal('#title', '');
-                    setVal('#author', '');
-                    setVal('#isbn', '');
-                }  
-            }
-            else {  // add book
-
-                let {err, bookItem}  = this.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
-                if( err ) this.showAlert(err, 'warning');
-                else {
-                  //IdEl('book-list').appendChild(bookItem.render())
-                    Store.addBook( bookItem.book );
-                    this.showAlert('Book Added', 'success');   
-                    setVal('#title', '');
-                    setVal('#author', '');
-                    setVal('#isbn', '');
-                }                
-            }
+            //         let {err, bookItem}  = this.addBook(getVal('#title'), getVal('#author'), getVal('#isbn'));
+            //         if( err ) this.showAlert(err, 'warning');
+            //         else {
+            //         //IdEl('book-list').appendChild(bookItem.render())
+            //             Store.addBook( bookItem.book );
+            //             this.showAlert('Book Added', 'success');   
+            //             setVal('#title', '');
+            //             setVal('#author', '');
+            //             setVal('#isbn', '');
+            //         }                
+            //     }
+            // });
         });
     }
 
     
     render() {
-        
+
+       IdEl('main-container').appendChild( this.bookForm.render() );        
        IdEl('main-container').appendChild( this.bookTable.render(this.books) );
     }
 
@@ -325,5 +402,5 @@ class App {
 };
 
 let app = new App();
-app.render();
+
 
