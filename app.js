@@ -184,46 +184,6 @@ class BookForm extends Showable {
     }
 }
 
-// let bookFormSubmit = (app) => {
-
-//     return (e) => {
-
-//         e.preventDefault();
-//         console.log(`submit - value:${this.title.value} author:${this.author.value}` )
-//         if(this.title.value === '' || this.author.value === '' || this.isbn.value === '') {
-//             app.showMessage('BookForm: Please fill in all fields', 'warning');
-//             return;
-//         }
- 
-//         if(app.editMode) {   // update book
-
-//             app.editMode = false;
-//             setVal('#add-update-book', "Add Book");
-        
-//             let {err, bookItem} = app.updateBook( app.bookForm.getValues() );
-//             if( err ) app.showMessage(err, 'warning');
-//             else {
-
-//                 Store.updateBook( bookItem.book );
-//                 app.showMessage('Book Updated', 'success');  
-//                 app.bookForm.setValues();
-//             }  
-//         }
-//         else {  // add book
-
-//             let {err, bookItem}  = app.addBook( app.bookForm.getValues() );
-//             if( err ) app.showMessage(err, 'warning');
-//             else {
-
-//                 Store.addBook( bookItem.book );
-//                 app.showMessage('Book Added', 'success');  
-//                 app.bookForm.setValues();
-//             }
-//         }
-//     }
-// }
-
-
 let onError = (app) => {
 
     app.showMessage()
