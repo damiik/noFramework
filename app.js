@@ -36,22 +36,23 @@ class Store {
 
         books.forEach((updatedBook) => {
 
-            if(updatedBook.isbn === book.isbn) {
+            if(updatedBook.id == book.id) {
                 updatedBook.title = book.title;
-                updatedBook.author = book.author;
+                updatedBook.user = book.user;
+                updatedBook.tags = book.tags;
             }
         })
 
         localStorage.setItem('books', JSON.stringify(books));
     };
 
-    static removeBook(isbn) {
+    static removeBook(id) {
 
         const books = Store.getBooks();
 
         books.forEach((book, index) => {
 
-            if(book.isbn === isbn || (book.isbn === undefined && book.isbn === undefined)) {
+            if(book.id == id || (book.id === undefined && book.id === undefined)) {
                 books.splice(index, 1);
             }
         })
@@ -88,7 +89,7 @@ class BookItem extends Showable {
     constructor(book, onEditClick, onDeleteClick) {
 
         super(document.createElement('tr'));  
-        this.el.setAttribute("id", book.isbn);
+        this.el.setAttribute("id", book.id);
         this.book = book;
         this.onEditClick = onEditClick;
         this.onDeleteClick = onDeleteClick;
@@ -98,13 +99,13 @@ class BookItem extends Showable {
 
         this.el.innerHTML =  `
         <td class="app-info">${this.book.title}</td>
-        <td class="app-info">${this.book.author}</td>
-        <td class="app-info">${this.book.isbn}</td>
+        <td class="app-info">${this.book.user}</td>
+        <td class="app-info">${this.book.tags}</td>
         <td class="app-info">
-        <a href="#" onClick="(${this.onEditClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn-noframe edit"><i class="fas fa-pen-alt light"></i> Edit</a> 
+        <a href="#" onClick="(${this.onEditClick})('${this.book.title}', '${this.book.user}', '${this.book.tags}', '${this.book.id}');" class="btn-noframe edit"><i class="fas fa-edit light"></i> Edit</a> 
         </td>
         <td class="app-info">
-        <a href="#" onClick="(${this.onDeleteClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn-danger delete"><i class="fas fa-times-circle "></i></a> 
+        <a href="#" onClick="(${this.onDeleteClick})('${this.book.title}', '${this.book.user}', '${this.book.tags}', '${this.book.id}');" class="btn-danger delete"><i class="fas fa-times-circle "></i></a> 
         </td>
         `;
         return super.render();
@@ -119,7 +120,7 @@ class BookTable extends Showable  {
         super(document.createElement('table'));
         this.el.className = 'table frame';
         //this.el.setAttribute("id",  'book-list'); //<<added
-        this.columns =  ["Title", "Author", "ISBN", "", ""];
+        this.columns =  ["Title", "User", "Tags", "", ""];
     }
 
     render(books) {
@@ -155,13 +156,13 @@ class BookForm extends Showable {
         });
     }
 
-    getValues() { return {title: this.title.value, author: this.author.value, isbn: this.isbn.value} }
+    getValues() { return {title: this.title.value, user: this.user.value, tags: this.tags.value} }
 
-    setValues(title = '', author = '', isbn = '') {
+    setValues(title = '', user = '', tags = '') {
 
         this.title.value = title;
-        this.author.value = author;
-        this.isbn.value = isbn;
+        this.user.value = user;
+        this.tags.value = tags;
     }
     
     render() {
@@ -171,19 +172,19 @@ class BookForm extends Showable {
             <label for="title" class ="form-label">Title :</label>
             <input type="text" id="title" class="form-value">
 
-            <label for="author" class ="form-label">Author :</label>
-            <input type="text" id="author" class="form-value">
+            <label for="user" class ="form-label">User :</label>
+            <input type="text" id="user" class="form-value">
 
-            <label for="isbn" class ="form-label">ISBN :</label>
-            <input type="text" id="isbn" class="form-value">
+            <label for="tags" class ="form-label">Tags :</label>
+            <input type="text" id="tags" class="form-value">
  
             <input type="submit" value="Add Book" class="form-button btn-success" id="add-update-book">  
         `;
 
         let el = super.render();
         this.title = el.children[1];
-        this.author = el.children[3];
-        this.isbn = el.children[5];
+        this.user = el.children[3];
+        this.tags = el.children[5];
         return el;
     }
 }
@@ -215,6 +216,7 @@ class App {
         this.bookForm = new BookForm(this.bookFormSubmit(), onError(this) );
         this.bookTable = new BookTable();        
         this.editMode = false;
+        this.editId = undefined;
         this.books = sb.map((b) => new BookItem(b, 
 
             this.editButtonClick(),
@@ -233,11 +235,13 @@ class App {
     editButtonClick() {
 
         let app = this;
-        return (title, author, isbn) => {
+        return (title, user, tags, id) => {
     
-            console.log(`edit button click with isbn ${title}`)
-            app.bookForm.setValues(title, author, isbn);
+            console.log(`edit button click with id ${id}`)
+            app.bookForm.setValues(title, user, tags);
             app.editMode = true;
+            app.editId = id !== undefined? id : (new Date).getTime();
+
             setVal('#add-update-book', 'Update');
         };
     }
@@ -246,13 +250,13 @@ class App {
     deleteButtonClick() {
 
         let app = this;
-        return (title, author, isbn) => {
+        return (title, user, tags, id) => {
     
-            console.log(`delete button click with isbn ${title}`)
+            console.log(`delete button click with id ${id}`)
     
-            Store.removeBook( isbn );
-            let deleted = app.removeBook( isbn );
-            if( deleted ) app.bookForm.setValues(deleted.title, deleted.author, deleted.isbn);
+            Store.removeBook( id );
+            let deleted = app.removeBook( id );
+            if( deleted ) app.bookForm.setValues(deleted.title, deleted.user, deleted.tags);
            
             app.showMessage('Book Removed', 'success');
         };
@@ -265,13 +269,13 @@ class App {
         return (e) => {
 
             e.preventDefault();
-             console.log(`submit - value:${app.bookForm.title.value} author:${app.bookForm.author.value}` )
+             console.log(`submit - value:${app.bookForm.title.value} user:${app.bookForm.user.value}` )
             if(app.bookForm.title.value === '' || 
-                app.bookForm.author.value === '' || 
-                app.bookForm.isbn.value === '' ||
+                app.bookForm.user.value === '' || 
+                app.bookForm.tags.value === '' ||
                 app.bookForm.title.value === undefined || 
-                app.bookForm.author.value === undefined || 
-                app.bookForm.isbn.value === undefined
+                app.bookForm.user.value === undefined || 
+                app.bookForm.tags.value === undefined
                 ) {
                 app.showMessage('BookForm: Please fill in all fields', 'warning');
                 return;
@@ -279,10 +283,12 @@ class App {
 
             if( app.editMode ) {   // update book
     
-                app.editMode = false;
                 setVal('#add-update-book', "Add Book");
-            
-                let {err, bookItem} = app.updateBook( app.bookForm.getValues() );
+                let book = app.bookForm.getValues();
+                book.id = app.editId;
+                app.editId = undefined;
+                app.editMode = false;
+                let {err, bookItem} = app.updateBook( book );
                 if( err ) app.showMessage(err, 'warning');
                 else {
     
@@ -292,8 +298,11 @@ class App {
                 }  
             }
             else {  // add book
-    
-                let {err, bookItem}  = app.addBook( app.bookForm.getValues() );
+
+                let book = app.bookForm.getValues();
+                book.id = (new Date).getTime();
+
+                let {err, bookItem}  = app.addBook( book );
                 if( err ) app.showMessage(err, 'warning');
                 else {
     
@@ -305,8 +314,6 @@ class App {
         }
     }
     
-
-
 
     showMessage(message, className) {
 
@@ -321,27 +328,27 @@ class App {
 
     
     //-----------------------------------------------------------------------------------------
-    getBookIndex(isbn) {
+    getBookIndex(id) {
 
         let bookItemIndex = -1;
         this.books.forEach((bookItem, index) => {
 
-            if(bookItem !== undefined && bookItem.book.isbn === isbn)  bookItemIndex = index;
+            if(bookItem !== undefined && bookItem.book.id == id)  bookItemIndex = index;
         });  
         return bookItemIndex;
     }
 
-    getBook(isbn) {
+    getBook(id) {
 
-        let bookItemIndex = this.getBookIndex( isbn );
+        let bookItemIndex = this.getBookIndex( id );
         if(bookItemIndex > -1) return {err:undefined, bookItem:this.books[ bookItemIndex ]};
-        return {err:`Can't find book with isbn ${isbn}`, bookItem: undefined};
+        return {err:`Can't find book with id ${id}`, bookItem: undefined};
     }
 
     addBook(book) {   
         
         let {err, bookItem} = {undefined, undefined};
-        if(this.getBookIndex(book.isbn) > -1) err = 'ISBN number must be unique!';  
+        if(this.getBookIndex(book.id) > -1) err = 'TAGS number must be unique!';  
       
         if(!err) {
 
@@ -358,29 +365,30 @@ class App {
   
     updateBook(book) {
 
-        let {err, bookItem} = this.getBook( book.isbn );
+        let {err, bookItem} = this.getBook( book.id );
 
         if(bookItem !== undefined) {
             bookItem.book.title = book.title;
-            bookItem.book.author = book.author;
+            bookItem.book.user = book.user;
+            bookItem.book.tags = book.tags;
             bookItem.render(); // !!!!! super !!!!!! updated only changed element
         }
         return {err, bookItem};
     }
     // przerobić resztę metod na styl funcyjny
-    removeBook( isbn ) {
-
+    removeBook( id ) {
+     
         let toDelete = undefined;
 
         this.books = this.books.filter(b => {
-
-            if(b.book.isbn !== isbn) return true;
+   //console.log('toDelete:' + id + " curr:" + b.book.id )
+            if(b.book.id != id) return true;
             else toDelete = b;
             return false;
         });
 
         if(toDelete !== undefined) {
-            
+            console.log('toDelete:' + toDelete.book.id)
             toDelete.remove();
             console.log( toDelete )
             return toDelete.book;
