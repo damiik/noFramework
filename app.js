@@ -51,7 +51,7 @@ class Store {
 
         books.forEach((book, index) => {
 
-            if(book.isbn === isbn) {
+            if(book.isbn === isbn || (book.isbn === undefined && book.isbn === undefined)) {
                 books.splice(index, 1);
             }
         })
@@ -97,14 +97,14 @@ class BookItem extends Showable {
     render() {
 
         this.el.innerHTML =  `
-        <td>${this.book.title}</td>
-        <td>${this.book.author}</td>
-        <td>${this.book.isbn}</td>
-        <td>
-        <a href="#" onClick="(${this.onEditClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn btn-success btn-sm edit">Edit</a> 
+        <td class="app-info">${this.book.title}</td>
+        <td class="app-info">${this.book.author}</td>
+        <td class="app-info">${this.book.isbn}</td>
+        <td class="app-info">
+        <a href="#" onClick="(${this.onEditClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn-noframe edit"><i class="fas fa-pen-alt light"></i> Edit</a> 
         </td>
-        <td>
-        <a href="#" onClick="(${this.onDeleteClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn btn-danger btn-sm delete">X</a> 
+        <td class="app-info">
+        <a href="#" onClick="(${this.onDeleteClick})('${this.book.title}', '${this.book.author}', '${this.book.isbn}');" class="btn-danger delete"><i class="fas fa-times-circle "></i></a> 
         </td>
         `;
         return super.render();
@@ -117,8 +117,9 @@ class BookTable extends Showable  {
     constructor() {
 
         super(document.createElement('table'));
-        this.el.className = `table table-striped mt-5`;
-        this.columns =  ["Title", "Author", "ISBN", ""];
+        this.el.className = 'table frame';
+        //this.el.setAttribute("id",  'book-list'); //<<added
+        this.columns =  ["Title", "Author", "ISBN", "", ""];
     }
 
     render(books) {
@@ -130,6 +131,8 @@ class BookTable extends Showable  {
         </tr>
         </thead>
         `;
+
+        console.log("render(books) ")
 
       let bookList = this.appendWithId('tbody', 'book-list');
       //console.log(IdEl('book-list')) is null!
@@ -146,7 +149,10 @@ class BookForm extends Showable {
 
         super(document.createElement('form'));
         this.el.setAttribute('id', 'book-form');
-        this.el.addEventListener('submit', (e) => onSubmit(e));
+        this.el.className = 'form-container frame';
+        this.el.addEventListener('submit', (e) => {
+            onSubmit(e);
+        });
     }
 
     getValues() { return {title: this.title.value, author: this.author.value, isbn: this.isbn.value} }
@@ -162,24 +168,22 @@ class BookForm extends Showable {
 
         this.el.innerHTML =  `
 
-            <div class="form-group">
-                <label for="title">Title</label>
-                <input type="text" id="title" class="form-control">
-            </div>
-            <div class="form-group">
-                    <label for="author">Author</label>
-                    <input type="text" id="author" class="form-control">
-            </div>
-            <div class="form-group">
-                    <label for="isbn">ISBN</label>
-                    <input type="text" id="isbn" class="form-control">
-            </div>  
-            <input type="submit" value="Add Book" class="btn btn-primary btn-block" id="add-update-book">  
+            <label for="title" class ="form-label">Title :</label>
+            <input type="text" id="title" class="form-value">
+
+            <label for="author" class ="form-label">Author :</label>
+            <input type="text" id="author" class="form-value">
+
+            <label for="isbn" class ="form-label">ISBN :</label>
+            <input type="text" id="isbn" class="form-value">
+ 
+            <input type="submit" value="Add Book" class="form-button btn-success" id="add-update-book">  
         `;
+
         let el = super.render();
-        this.title = el.children[0].children[1];
-        this.author = el.children[1].children[1];
-        this.isbn = el.children[2].children[1];
+        this.title = el.children[1];
+        this.author = el.children[3];
+        this.isbn = el.children[5];
         return el;
     }
 }
@@ -219,6 +223,7 @@ class App {
 
         document.addEventListener('DOMContentLoaded', () => {
 
+          
             IdEl('main-container').appendChild( this.bookForm.render() );        
             IdEl('main-container').appendChild( this.bookTable.render(this.books) );            
         });
@@ -261,7 +266,13 @@ class App {
 
             e.preventDefault();
              console.log(`submit - value:${app.bookForm.title.value} author:${app.bookForm.author.value}` )
-            if(app.bookForm.title.value === '' || app.bookForm.author.value === '' || app.bookForm.isbn.value === '') {
+            if(app.bookForm.title.value === '' || 
+                app.bookForm.author.value === '' || 
+                app.bookForm.isbn.value === '' ||
+                app.bookForm.title.value === undefined || 
+                app.bookForm.author.value === undefined || 
+                app.bookForm.isbn.value === undefined
+                ) {
                 app.showMessage('BookForm: Please fill in all fields', 'warning');
                 return;
             }
@@ -356,19 +367,24 @@ class App {
         }
         return {err, bookItem};
     }
-
+    // przerobić resztę metod na styl funcyjny
     removeBook( isbn ) {
 
-        let bookItemIndex = this.getBookIndex( isbn );
-        if(bookItemIndex > -1) {
+        let toDelete = undefined;
 
-            let toDelete = this.books[ bookItemIndex ];
+        this.books = this.books.filter(b => {
+
+            if(b.book.isbn !== isbn) return true;
+            else toDelete = b;
+            return false;
+        });
+
+        if(toDelete !== undefined) {
+            
             toDelete.remove();
-            this.books.splice(bookItemIndex, 1);
             console.log( toDelete )
             return toDelete.book;
         }
-
         return {};
     }
 };
