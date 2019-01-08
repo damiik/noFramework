@@ -1,4 +1,3 @@
-
 import Store from './store.js';
 import Icon from './img/idea-icon-12424.png'
 
@@ -42,20 +41,18 @@ class App {
         let sb = Store.getBooks();
        
         this.bookForm = new BookForm(this.bookFormSubmit(), onError(this) );
-        this.bookTable = new BookTable();        
+        this.bookTable = new BookTable(sb.map(
+            
+                (b) => new BookItem(b, this.editButtonClick(), this.deleteButtonClick())
+            )
+        );        
         this.editMode = false;
         this.editId = undefined;
-        this.books = sb.map((b) => new BookItem(b, 
-
-            this.editButtonClick(),
-            this.deleteButtonClick()
-        ));
 
         document.addEventListener('DOMContentLoaded', () => {
 
-          
             IdEl('main-container').appendChild( this.bookForm.render() );        
-            IdEl('main-container').appendChild( this.bookTable.render(this.books) );            
+            IdEl('main-container').appendChild( this.bookTable.render() );            
         });
     }
 
@@ -83,7 +80,7 @@ class App {
             console.log(`delete button click with id ${id}`)
     
             Store.removeBook( id );
-            let deleted = app.removeBook( id );
+            let deleted = app.bookTable.removeBook( id );
             if( deleted ) app.bookForm.setValues(deleted.title, deleted.user, deleted.tags);
            
             app.showMessage('Book Removed', 'success');
@@ -118,7 +115,7 @@ class App {
                 book.id = app.editId;
                 app.editId = undefined;
                 app.editMode = false;
-                let {err, bookItem} = app.updateBook( book );
+                let {err, bookItem} = app.bookTable.updateBook( book );
                 if( err ) app.showMessage(err, 'warning');
                 else {
     
@@ -129,10 +126,12 @@ class App {
             }
             else {  // add book
 
-                let book = app.bookForm.getValues();
-                book.id = (new Date).getTime();
+                let {err, bookItem} = app.bookTable.addBook( new BookItem({...app.bookForm.getValues(), id:(new Date).getTime()}, 
 
-                let {err, bookItem}  = app.addBook( book );
+                        this.editButtonClick(),
+                        this.deleteButtonClick()
+                    )
+                );
                 if( err ) app.showMessage(err, 'warning');
                 else {
     
@@ -158,76 +157,7 @@ class App {
 
 
     //-----------------------------------------------------------------------------------------
-    getBookIndex(id) {
 
-        let bookItemIndex = -1;
-        this.books.forEach((bookItem, index) => {
-
-            if(bookItem !== undefined && bookItem.book.id == id)  bookItemIndex = index;
-        });  
-        return bookItemIndex;
-    }
-
-    getBook(id) {
-
-        let bookItemIndex = this.getBookIndex( id );
-        if(bookItemIndex > -1) return {err:undefined, bookItem:this.books[ bookItemIndex ]};
-        return {err:`Can't find book with id ${id}`, bookItem: undefined};
-    }
-
-    addBook(book) {   
-        
-        let {err, bookItem} = {undefined, undefined};
-        if(this.getBookIndex(book.id) > -1) err = 'TAGS number must be unique!';  
-      
-        if(!err) {
-
-            bookItem = new BookItem(book, 
-
-                this.editButtonClick(),
-                this.deleteButtonClick()
-            );
-            this.books = [...this.books, bookItem];
-            IdEl('book-list').appendChild(bookItem.render());
-        }
-        return {err, bookItem};
-    }
-  
-    updateBook(book) {
-
-        let {err, bookItem} = this.getBook( book.id );
-
-        if(bookItem !== undefined) {
-            bookItem.book.title = book.title;
-            bookItem.book.user = book.user;
-            bookItem.book.tags = book.tags;
-            bookItem.render(); // !!!!! super !!!!!! updated only changed element
-        }
-        return {err, bookItem};
-    }
-
-    // przerobić resztę metod na styl funcyjny
-    removeBook( id ) {
-     
-        let toDelete = undefined;
-
-        this.books = this.books.filter(b => {
-
-            //console.log('toDelete:' + id + " curr:" + b.book.id )
-            if(b.book.id != id) return true;
-            else toDelete = b;
-            return false;
-        });
-
-        if(toDelete !== undefined) {
-
-            console.log('toDelete:' + toDelete.book.id)
-            toDelete.remove();
-            console.log( toDelete )
-            return toDelete.book;
-        }
-        return {};
-    }
 };
 
 let app = new App();
