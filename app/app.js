@@ -1,193 +1,21 @@
 
+import Store from './store.js';
+import Icon from './img/idea-icon-12424.png'
+
+import BookItem from './components/BookItem.js';
+import BookTable from './components/BookTable.js';
+import BookForm from './components/BookForm.js';
+
+import './style.scss'
+
+const img = new Image();
+img.src = Icon;
+
+
 const IdEl = (id) => document.getElementById(id)
 const El = (desc) => document.querySelector(desc)
-const getVal = (desc) => El(desc).value;
 const setVal = (desc, val) => El(desc).value = val;
-const addEvent = (desc, e, f) => El(desc).addEventListener(e, f);
 
-
-
-// Store class: handles storage
-class Store {
-
-    static getBooks() {
-        
-        let books = [];
-        if(localStorage.getItem('books') !== null) {
-
-            books = JSON.parse(localStorage.getItem('books'));
-        }
-
-        return books;
-    };
-
-    static addBook(book) {
-
-        const books = Store.getBooks();
-
-        books.push(book);
-
-        localStorage.setItem('books', JSON.stringify( books));
-    };
-
-    static updateBook(book) {
-
-        const books = Store.getBooks();
-
-        books.forEach((updatedBook) => {
-
-            if(updatedBook.id == book.id) {
-                updatedBook.title = book.title;
-                updatedBook.user = book.user;
-                updatedBook.tags = book.tags;
-            }
-        })
-
-        localStorage.setItem('books', JSON.stringify(books));
-    };
-
-    static removeBook(id) {
-
-        const books = Store.getBooks();
-
-        books.forEach((book, index) => {
-
-            if(book.id == id || (book.id === undefined && book.id === undefined)) {
-                books.splice(index, 1);
-            }
-        })
-
-        localStorage.setItem('books', JSON.stringify(books));
-    };
-}
-
-
-class Showable {
-
-    constructor(el = undefined) { this.el = el; }
-    render() { return this.el; }
-    remove() { if( this.el ) this.el.remove(); }
-
-    appendWithId(el, id) {
-      
-      let child = this.el.appendChild(document.createElement(el));
-      child.setAttribute("id", id);
-      return child;
-    }
-
-    appendWithClass(el, className) {
-      
-      let child = this.el.appendChild(document.createElement(el));
-      child.setAttribute("class", className);
-      return child;
-    }
-}
-
-
-class BookItem extends Showable {
-
-    constructor(book, onEditClick, onDeleteClick) {
-
-        super(document.createElement('tr'));  
-        this.el.setAttribute("id", book.id);
-        this.book = book;
-        this.onEditClick = onEditClick;
-        this.onDeleteClick = onDeleteClick;
-     }
-
-    render() {
-
-        this.el.innerHTML =  `
-        <td class="app-info">${this.book.title}</td>
-        <td class="app-info">${this.book.user}</td>
-        <td class="app-info">${this.book.tags}</td>
-        <td class="app-info">
-        <a href="#" onClick="(${this.onEditClick})('${this.book.title}', '${this.book.user}', '${this.book.tags}', '${this.book.id}');" class="btn-noframe edit"><i class="fas fa-edit light"></i> Edit</a> 
-        </td>
-        <td class="app-info">
-        <a href="#" onClick="(${this.onDeleteClick})('${this.book.title}', '${this.book.user}', '${this.book.tags}', '${this.book.id}');" class="btn-danger delete"><i class="fas fa-times-circle "></i></a> 
-        </td>
-        `;
-        return super.render();
-    }
-}
-
-
-class BookTable extends Showable  {
-
-    constructor() {
-
-        super(document.createElement('table'));
-        this.el.className = 'table frame';
-        //this.el.setAttribute("id",  'book-list'); //<<added
-        this.columns =  ["Title", "User", "Tags", "", ""];
-    }
-
-    render(books) {
-
-       this.el.innerHTML =  `
-        <thead>
-        <tr>
-        ${this.columns.map(t => "<th>"+t+"</th>").reduce((s, t) => s + t)}
-        </tr>
-        </thead>
-        `;
-
-        console.log("render(books) ")
-
-      let bookList = this.appendWithId('tbody', 'book-list');
-      //console.log(IdEl('book-list')) is null!
-      books.map(book => bookList.appendChild(book.render()));
-      
-      return super.render();
-    }
-}
-
-
-class BookForm extends Showable {
-
-    constructor(onSubmit, onError) {
-
-        super(document.createElement('form'));
-        this.el.setAttribute('id', 'book-form');
-        this.el.className = 'form-container frame';
-        this.el.addEventListener('submit', (e) => {
-            onSubmit(e);
-        });
-    }
-
-    getValues() { return {title: this.title.value, user: this.user.value, tags: this.tags.value} }
-
-    setValues(title = '', user = '', tags = '') {
-
-        this.title.value = title;
-        this.user.value = user;
-        this.tags.value = tags;
-    }
-    
-    render() {
-
-        this.el.innerHTML =  `
-
-            <label for="title" class ="form-label">Title :</label>
-            <input type="text" id="title" class="form-value">
-
-            <label for="user" class ="form-label">User :</label>
-            <input type="text" id="user" class="form-value">
-
-            <label for="tags" class ="form-label">Tags :</label>
-            <input type="text" id="tags" class="form-value">
- 
-            <input type="submit" value="Add Book" class="form-button btn-success" id="add-update-book">  
-        `;
-
-        let el = super.render();
-        this.title = el.children[1];
-        this.user = el.children[3];
-        this.tags = el.children[5];
-        return el;
-    }
-}
 
 let onError = (app) => {
 
@@ -262,14 +90,15 @@ class App {
         };
     }
 
+
     bookFormSubmit() {
 
         let app = this;
 
-        return (e) => {
+        return ( e ) => {
 
             e.preventDefault();
-             console.log(`submit - value:${app.bookForm.title.value} user:${app.bookForm.user.value}` )
+            console.log(`submit - value:${app.bookForm.title.value} user:${app.bookForm.user.value}` )
             if(app.bookForm.title.value === '' || 
                 app.bookForm.user.value === '' || 
                 app.bookForm.tags.value === '' ||
@@ -277,6 +106,7 @@ class App {
                 app.bookForm.user.value === undefined || 
                 app.bookForm.tags.value === undefined
                 ) {
+
                 app.showMessage('BookForm: Please fill in all fields', 'warning');
                 return;
             }
@@ -295,7 +125,7 @@ class App {
                     Store.updateBook( bookItem.book );
                     app.showMessage('Book Updated', 'success');  
                     app.bookForm.setValues();
-                }  
+                }
             }
             else {  // add book
 
@@ -313,7 +143,7 @@ class App {
             }
         }
     }
-    
+
 
     showMessage(message, className) {
 
@@ -326,7 +156,7 @@ class App {
         setTimeout(() => { El('.alert').remove(); }, 3000);
     }
 
-    
+
     //-----------------------------------------------------------------------------------------
     getBookIndex(id) {
 
@@ -375,19 +205,22 @@ class App {
         }
         return {err, bookItem};
     }
+
     // przerobić resztę metod na styl funcyjny
     removeBook( id ) {
      
         let toDelete = undefined;
 
         this.books = this.books.filter(b => {
-   //console.log('toDelete:' + id + " curr:" + b.book.id )
+
+            //console.log('toDelete:' + id + " curr:" + b.book.id )
             if(b.book.id != id) return true;
             else toDelete = b;
             return false;
         });
 
         if(toDelete !== undefined) {
+
             console.log('toDelete:' + toDelete.book.id)
             toDelete.remove();
             console.log( toDelete )
@@ -400,3 +233,4 @@ class App {
 let app = new App();
 
 
+export default app;

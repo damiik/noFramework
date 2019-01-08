@@ -48,60 +48,99 @@
 // let cat4 = new zoo.Cat(zoo.arrowFunctionFromPar);
 // cat4.fromCatConstructor(); // this.a = undefined!
 
-function BookList (prefix) {  
-    
-   // constructor() {
+// function BookList (prefix) {  
+   
+//     this.prefix = prefix; 
+//     this.prefix2 = 'd'  
+ 
+//     this.makeGetBooksWithPrefix = function() { 
+ 
+//         return () => {
+//             /* zmienna "this" objektu klasy BookList lub*/
+//             /* zmienna "this" metody getBooksWithPrefix */  
+//             return ["book1", "book2", "book3"].map(book => `${this.prefix}${book}` );
+//         } 
+//     }
+ 
+//     this.getBooksWithPrefix1 = (() => { 
+ 
+//         return () => {   
+//             /* atrybut "this.prefix" objektu klasy BookList, nieokreślony jeszcze w definicji klasy */
+//             return ["book1", "book2", "book3"].map(book => `${this.prefix}${book}` );
+//         } 
+//     })();
+ 
+//     this.getBooksWithPrefix2 = (() => { 
+ 
+//         return () => { 
+//             /* atrybut "this.prefix2" klasy BookList, określony w definicji klasy */     
+//             return ["book1", "book2", "book3"].map(book => `${this.prefix2}${book}` ); 
+//         } 
+//     })();
+ 
+//     this.getBooksWithPrefix3 = (function() {
+ 
+//         /* funkcja tworzy nowy lokalny "this", war. this.prefix2 będzie undefined */
+//         return () => {
+//             /* zmienna "this" metody getBooksWithPrefix3 */
+//             return ["book1", "book2", "book3"].map(book => `${this.prefix2}${book}` ); 
+//         } 
+//     })();
+ 
+//     this.getBooksWithPrefix4 = (function() {
+ 
+//         /* lokalne "this" zostaje zastąpione kontekstem objektu BookList dzięki bind(this)*/
+//         return () => {
+//             /* zmienna "this" metody getBooksWithPrefix3 */
+//             return ["book1", "book2", "book3"].map(book => `${this.prefix2}${book}` ); 
+//         } 
+//     }).bind(this)();
+//  }
+ 
+//  let c = new BookList('*');
+//  let d = new BookList('x');
+ 
+//  /* użycie funkcji wygenerowanej lokalnie w miejscu wywołania: */
+//  console.log( c.makeGetBooksWithPrefix()() );
+//  console.log( d.makeGetBooksWithPrefix()() );
+ 
+//  /* użycie funkcji wygenerowanych wcześniej w konstruktorze: */
+//  console.log( d.getBooksWithPrefix1() );
+//  console.log( d.getBooksWithPrefix2() );
+//  console.log( d.getBooksWithPrefix3() );
+//  console.log( d.getBooksWithPrefix4() );
+ 
 
-        this.prefix = prefix; 
-        this.prefix2 = 'd'; 
-    //}  
 
-    this.makeGetBooksWithPrefix = function() { 
 
-        return () => {      
-           /* zmienna "this" objektu klasy BookList lub*/
-           /* zmienna "this" metody getBooksWithPrefix */  
-            return ["book1", "book2", "book3"].map(book => `${this.prefix}${book}` );
-        } 
-    }
 
-    this.getBooksWithPrefix1 = (() => { 
+function makeAdder( x ) {
+    let a = 3;
+    return ( y ) => {
 
-        return () => {      
-            /* zmienna "this" objektu klasy BookList */
-            return ["book1", "book2", "book3"].map(book => `${this.prefix}${book}` ); 
-        } 
-    })();
-
-    this.getBooksWithPrefix2 = (() => { 
-
-        return () => {      
-            /* zmienna "this" klasy BookList */ 
-            return ["book1", "book2", "book3"].map(book => `${this.prefix2}${book}` ); 
-        } 
-    })();
-    this.getBooksWithPrefix3 = (function() { 
-        /* funkcja odwołuje się do tego kontekstu, inaczej war. this.prefix2 będzie undefined */
-        //this.localPrefix = '?' 
-        return () => {      
-            /* zmienna "this" metody getBooksWithPrefix3 */
-            return ["book1", "book2", "book3"].map(book => `${this.prefix2}${book}` ); 
-        } 
-    })()
-
+        return (x + y) * a;
+    };
 }
+  
+  var add5 = makeAdder(5);
+  var add10 = makeAdder(10);
+  
+  console.log(add5(2));  // 7
+  console.log(add10(2)); // 12
 
-let c = new BookList('*');
-let d = new BookList('x');
 
 
 
-console.log(c.makeGetBooksWithPrefix()());
-console.log(d.makeGetBooksWithPrefix()());
 
-console.log(d.getBooksWithPrefix1());
-console.log(d.getBooksWithPrefix2());
-console.log(d.getBooksWithPrefix3());
+ // wynik funkcji stworzonej lokalnie:
+ //  [ '*book1', '*book2', '*book3' ]
+ //  [ 'xbook1', 'xbook2', 'xbook3' ]
+ 
+ // wynik funkcji stworzonych w konstruktorze:
+ //  [ 'xbook1', 'xbook2', 'xbook3' ]
+ //  [ 'dbook1', 'dbook2', 'dbook3' ]
+ //  [ 'undefinedbook1', 'undefinedbook2', 'undefinedbook3' ]
+ //  [ 'dbook1', 'dbook2', 'dbook3' ]
 
 //"this" is real Zoo!
 
