@@ -8,3 +8,6 @@
 5. Main App by event handler functions can change/manipulate data model
 6. Main App by event handler functions can change/manipulate own components
 7. Only chaned components are rendered
+
+
+*Project was inspired by* [Traversy Media video](https://www.youtube.com/watch?v=JaMCxVWtW58)
